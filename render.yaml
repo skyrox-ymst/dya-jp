@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: video-share
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MEMBER_PASSCODE
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SECRET
+        generateValue: true
+      - key: TERABOX_NDUS
+        sync: false
+      - key: TERABOX_DIR
+        value: /openchat

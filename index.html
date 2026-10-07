@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>みんなの動画</title>
+<style>
+:root{
+  --bg:#0e1220;--panel:#161b2e;--line:#252c45;--fg:#eceff8;--sub:#8f97b3;
+  --accent:#5666f5;--accent-fg:#fff;--danger:#ff6b7a;--shadow:0 12px 40px rgba(0,0,0,.45);
+}
+@media (prefers-color-scheme:light){:root{
+  --bg:#f4f5fa;--panel:#fff;--line:#e1e4ef;--fg:#141830;--sub:#5f6785;--accent:#4553e0;--danger:#d63a4c;--shadow:0 12px 40px rgba(20,24,48,.18);
+}}
+*{box-sizing:border-box}
+html{color-scheme:dark light}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 "Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.sub{color:var(--sub);font-size:13px}
+.err{color:var(--danger);font-size:14px;min-height:21px;margin-top:6px}
+
+/* ボタン・入力 */
+.btn{border:1px solid var(--line);background:transparent;border-radius:10px;padding:8px 14px;line-height:1.2}
+.btn:hover{border-color:var(--sub)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.btn.primary:disabled{opacity:.5;cursor:default}
+.btn.danger{color:var(--danger)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.field{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ログイン */
+.login{max-width:340px;margin:0 auto;padding:18vh 20px 0}
+.login h1{font-size:26px;margin:0 0 4px}
+.login .field{margin-top:12px}
+.login .row{margin-top:16px}
+
+/* ヘッダー・検索 */
+.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+.bar{display:flex;justify-content:space-between;align-items:center;height:52px}
+.bar h1{margin:0;font-size:18px;letter-spacing:.02em}
+.bar nav{display:flex;gap:6px;align-items:center}
+.search{display:flex;gap:8px;padding-bottom:12px}
+.sbox{position:relative;flex:1}
+.sbox svg{position:absolute;left:12px;top:50%;translate:0 -50%;width:18px;height:18px;color:var(--sub);pointer-events:none}
+.sbox input{padding-left:40px;padding-right:38px;height:42px;border-radius:12px}
+.sbox .clr{position:absolute;right:6px;top:50%;translate:0 -50%;border:0;background:none;color:var(--sub);width:30px;height:30px;font-size:18px}
+select.field{width:auto;height:42px;border-radius:12px;padding:0 10px}
+
+/* 一覧 */
+main{padding-top:18px;padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))}
+.count{margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:18px 14px}
+@media (min-width:700px){.grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}}
+.card{display:block;text-align:left;background:none;border:0;padding:0;min-width:0}
+.thumb{position:relative;display:block;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,var(--line),var(--panel))}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb::after{content:"";position:absolute;inset:0;margin:auto;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9 7v10l8-5z'/%3E%3C/svg%3E") center/26px no-repeat;opacity:.0;transition:opacity .15s}
+.thumb.empty::after{opacity:.9}
+.card:hover .thumb::after,.card:focus-visible .thumb::after{opacity:1}
+.ct{display:block;margin-top:8px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
+.cm{display:block;color:var(--sub);font-size:12px;margin-top:2px}
+.empty-msg{text-align:center;color:var(--sub);padding:64px 0}
+
+/* ダイアログ */
+dialog{border:0;padding:0;border-radius:18px;background:var(--panel);color:var(--fg);width:min(760px,94vw);max-height:92vh;box-shadow:var(--shadow);overflow:auto}
+dialog::backdrop{background:rgba(5,8,18,.72)}
+dialog[open]{animation:pop .16s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){dialog[open]{animation:none}}
+.dhead{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 0}
+.dhead h2{margin:0;font-size:16px}
+.x{border:0;background:none;font-size:26px;line-height:1;color:var(--sub);width:36px;height:36px}
+.dbody{padding:14px 18px 18px}
+.dbody label{display:block;margin-top:12px}
+.dbody label>span{display:block;margin-bottom:4px}
+#pv{width:100%;display:block;background:#000;max-height:62vh}
+.pinfo{padding:14px 18px 18px}
+.pinfo h2{margin:0;font-size:17px;word-break:break-all}
+.speed{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:14px 0 4px}
+.speed input[type=range]{flex:1;min-width:150px;accent-color:var(--accent)}
+.speed b{display:inline-block;min-width:2.4em;color:var(--fg)}
+progress{width:100%;margin-top:12px;accent-color:var(--accent)}
+.acc{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<section id="login" class="login" hidden>
+  <h1>みんなの動画</h1>
+  <p class="sub" id="loginHint">オープンチャットで伝えたパスワードを入力してください。</p>
+  <input class="field" type="text" id="user" placeholder="ユーザー名" autocomplete="username" hidden>
+  <input class="field" type="password" id="pw" placeholder="パスワード" autocomplete="current-password">
+  <div class="row"><button class="btn primary" id="loginBtn">入る</button><button class="btn" id="modeBtn" type="button">管理人ログイン</button></div>
+  <div class="err" id="loginErr"></div>
+</section>
+
+<div id="app" hidden>
+  <header class="top">
+    <div class="wrap">
+      <div class="bar">
+        <h1>みんなの動画</h1>
+        <nav>
+          <span class="sub" id="who"></span>
+          <button class="btn sm primary" id="openPost" hidden>＋ 投稿</button>
+          <button class="btn sm" id="openOwner" hidden>管理</button>
+          <button class="btn sm" id="logout">ログアウト</button>
+        </nav>
+      </div>
+      <div class="search">
+        <div class="sbox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input class="field" type="search" id="q" placeholder="動画を検索（スペースで絞り込み）" autocomplete="off" enterkeyhint="search" aria-label="動画を検索">
+          <button class="clr" id="clr" aria-label="検索をクリア" hidden>×</button>
+        </div>
+        <select class="field" id="sort" aria-label="並び替え">
+          <option value="new">新しい順</option><option value="old">古い順</option><option value="name">名前順</option>
+        </select>
+      </div>
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="sub count" id="count"></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty-msg" id="empty" hidden></div>
+  </main>
+</div>
+
+<!-- 再生 -->
+<dialog id="player" aria-label="動画プレイヤー">
+  <div class="dhead"><span></span><button class="x" id="pclose" aria-label="閉じる">×</button></div>
+  <video id="pv" controls playsinline></video>
+  <div class="pinfo">
+    <h2 id="pt"></h2>
+    <div class="sub" id="pm"></div>
+    <div class="speed">
+      <span class="sub">速度 <b id="sv">1.0</b>倍</span>
+      <input type="range" min="0.1" max="3" step="0.1" value="1" id="sr" aria-label="再生速度">
+      <span class="row" id="presets"></span>
+      <span class="sub" id="sn"></span>
+    </div>
+    <div class="row" id="pAdmin" style="margin-top:10px" hidden>
+      <button class="btn sm" data-act="rename">名前を変更</button>
+      <button class="btn sm" data-act="thumb">サムネ画像を選ぶ</button>
+      <button class="btn sm" data-act="frame">この場面をサムネに</button>
+      <button class="btn sm danger" data-act="del">削除</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- 投稿 -->
+<dialog id="postDlg" aria-label="動画を投稿">
+  <div class="dhead"><h2>動画を投稿</h2><button class="x" data-close aria-label="閉じる">×</button></div>
+  <div class="dbody">
+    <label><span class="sub">動画の名前（空なら元のファイル名）</span><input class="field" type="text" id="title"></label>
+    <label><span class="sub">動画ファイル</span><input class="field" type="file" id="file" accept="video/*"></label>
+    <label><span class="sub">サムネ画像（任意。空なら動画から自動で作成）</span><input class="field" type="file" id="thumbFile" accept="image/*"></label>
+    <div class="row" style="margin-top:16px"><button class="btn primary" id="uploadBtn">アップロード</button><button class="btn" id="refresh">一覧を更新</button></div>
+    <progress id="prog" value="0" max="100" hidden></progress>
+    <div class="sub" id="upStatus" style="margin-top:6px"></div>
+    <div class="err" id="upErr"></div>
+  </div>
+</dialog>
+
+<!-- 管理（オーナー） -->
+<dialog id="ownerDlg" aria-label="管理人アカウント">
+  <div class="dhead"><h2>管理人アカウント</h2><button class="x" data-close aria-label="閉じる">×</button></div>
+  <div class="dbody">
+    <div class="row">
+      <input class="field" style="flex:1;min-width:140px" type="text" id="newUser" placeholder="ユーザー名（英数字3〜20）" autocomplete="off">
+      <input class="field" style="flex:1;min-width:140px" type="password" id="newPw" placeholder="パスワード（8文字以上）" autocomplete="new-password">
+      <button class="btn primary" id="addAcc">作成</button>
+    </div>
+    <div class="err" id="accErr"></div>
+    <div id="accList"></div>
+  </div>
+</dialog>
+<input type="file" id="thumbPick" accept="image/*" hidden>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let me = { role: null }, all = [], cur = null, adminMode = false;
+const api = async (url, opt = {}) => {
+  const r = await fetch(url, { ...opt, headers: { 'Content-Type': 'application/json', ...(opt.headers || {}) } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'エラーが発生しました');
+  return j;
+};
+const mb = (n) => (n / 1048576).toFixed(1) + ' MB';
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const canPost = () => me.role === 'owner' || me.role === 'manager';
+
+// ---------- 検索（全角半角・大文字小文字・ひらがな/カタカナを区別しない。スペース区切りはAND） ----------
+const norm = (s) => String(s).normalize('NFKC').toLowerCase().replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60));
+function view() {
+  const terms = norm($('#q').value).split(/\s+/).filter(Boolean);
+  let list = all.filter((v) => { const t = norm(v.title); return terms.every((x) => t.includes(x)); });
+  const mode = $('#sort').value;
+  list = [...list].sort(mode === 'name' ? (a, b) => a.title.localeCompare(b.title, 'ja') : mode === 'old' ? (a, b) => (a.createdAt < b.createdAt ? -1 : 1) : (a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  return { list, searching: terms.length > 0 };
+}
+function draw() {
+  const { list, searching } = view(), t = Date.now();
+  $('#clr').hidden = !$('#q').value;
+  $('#grid').innerHTML = list.map((v) => `
+    <button class="card" data-id="${v.id}">
+      <span class="thumb ${v.hasThumb ? '' : 'empty'}">${v.hasThumb ? `<img loading="lazy" alt="" src="/thumb/${v.id}?t=${t}" onerror="this.remove();this.parentNode?.classList.add('empty')">` : ''}</span>
+      <span class="ct">${esc(v.title)}</span>
+      <span class="cm">${new Date(v.createdAt).toLocaleDateString('ja-JP')} ・ ${mb(v.size)}</span>
+    </button>`).join('');
+  $('#count').textContent = searching ? `${list.length}件見つかりました` : all.length ? `${all.length}本の動画` : '';
+  const e = $('#empty');
+  e.hidden = list.length > 0;
+  e.textContent = searching ? `「${$('#q').value.trim()}」に合う動画はありません` : canPost() ? 'まだ動画がありません。右上の「＋ 投稿」から追加できます' : 'まだ動画がありません';
+}
+$('#q').addEventListener('input', draw);
+$('#sort').addEventListener('change', draw);
+$('#clr').onclick = () => { $('#q').value = ''; draw(); $('#q').focus(); };
+
+// ---------- 初期化・読み込み ----------
+async function init() {
+  me = await api('/api/me').catch(() => ({ role: null }));
+  $('#login').hidden = !!me.role; $('#app').hidden = !me.role;
+  if (!me.role) return;
+  $('#who').textContent = me.role === 'owner' ? 'オーナー' : me.role === 'manager' ? me.name : '';
+  $('#openPost').hidden = !canPost(); $('#openOwner').hidden = me.role !== 'owner';
+  load();
+}
+async function load(refresh) {
+  try { all = await api('/api/videos' + (refresh ? '?refresh=1' : '')); draw(); }
+  catch (e) { $('#grid').innerHTML = ''; $('#empty').hidden = false; $('#empty').textContent = e.message; }
+}
+
+// ---------- ログイン ----------
+$('#modeBtn').onclick = () => {
+  adminMode = !adminMode;
+  $('#user').hidden = !adminMode;
+  $('#modeBtn').textContent = adminMode ? 'メンバーログイン' : '管理人ログイン';
+  $('#loginHint').textContent = adminMode ? '管理人のユーザー名とパスワードを入力してください。（オーナーはユーザー名を空にして入力）' : 'オープンチャットで伝えたパスワードを入力してください。';
+};
+$('#loginBtn').onclick = async () => {
+  try { await api('/api/login', { method: 'POST', body: JSON.stringify({ username: adminMode ? $('#user').value.trim() : '', password: $('#pw').value }) }); $('#pw').value = ''; $('#loginErr').textContent = ''; init(); }
+  catch (e) { $('#loginErr').textContent = e.message; }
+};
+$('#pw').onkeydown = (e) => e.key === 'Enter' && $('#loginBtn').click();
+$('#logout').onclick = async () => { await api('/api/logout', { method: 'POST' }); init(); };
+
+// ---------- ダイアログ共通 ----------
+document.querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => b.closest('dialog').close()));
+document.querySelectorAll('dialog').forEach((d) => d.addEventListener('click', (e) => { if (e.target === d) d.close(); })); // 外側クリックで閉じる
+$('#openPost').onclick = () => $('#postDlg').showModal();
+$('#openOwner').onclick = () => { $('#ownerDlg').showModal(); renderAccounts(); };
+
+// ---------- サムネ画像の作成（480px幅のJPEG） ----------
+function toJpeg(src, w, h, maxW = 480) {
+  const c = document.createElement('canvas'), k = Math.min(1, maxW / w);
+  c.width = Math.round(w * k); c.height = Math.round(h * k);
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  return new Promise((r) => c.toBlob(r, 'image/jpeg', 0.8));
+}
+async function imageBlob(file) { const b = await createImageBitmap(file); return toJpeg(b, b.width, b.height); }
+function autoThumb(file) {
+  return new Promise((res) => {
+    const v = document.createElement('video'), url = URL.createObjectURL(file);
+    const done = (b) => { clearTimeout(to); URL.revokeObjectURL(url); res(b); };
+    const to = setTimeout(() => done(null), 10000);
+    v.muted = true; v.playsInline = true; v.preload = 'auto';
+    v.onerror = () => done(null);
+    v.onloadedmetadata = () => { v.currentTime = Math.min(1, (v.duration || 2) / 10); };
+    v.onseeked = async () => { try { done(await toJpeg(v, v.videoWidth, v.videoHeight)); } catch { done(null); } };
+    v.src = url;
+  });
+}
+const putBlob = (url, blob) => fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: blob })
+  .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || '送信に失敗しました'); });
+
+// ---------- 再生 ----------
+const pv = $('#pv');
+$('#presets').innerHTML = [0.1, 0.25, 0.5, 1, 1.5, 2].map((x) => `<button class="btn sm" data-sp="${x}">${x}</button>`).join('');
+const savedSpeed = () => { try { return parseFloat(localStorage.getItem('speed')) || 1; } catch { return 1; } };
+function syncSpeed() { $('#sv').textContent = pv.playbackRate.toFixed(1); $('#sr').value = pv.playbackRate; }
+function setSpeed(val) {
+  val = Math.round(Math.min(3, Math.max(0.1, val)) * 10) / 10;
+  try { pv.defaultPlaybackRate = val; pv.playbackRate = val; } catch { /* 非対応の値 */ }
+  syncSpeed();
+  $('#sn').textContent = Math.abs(pv.playbackRate - val) > 0.001 ? `この端末では ${pv.playbackRate.toFixed(2)} 倍までです` : '';
+  try { localStorage.setItem('speed', val); } catch {}
+}
+$('#sr').addEventListener('input', (e) => setSpeed(parseFloat(e.target.value)));
+$('#presets').addEventListener('click', (e) => e.target.dataset.sp && setSpeed(parseFloat(e.target.dataset.sp)));
+pv.addEventListener('ratechange', syncSpeed);
+
+function openPlayer(id) {
+  cur = all.find((v) => v.id === id); if (!cur) return;
+  $('#pt').textContent = cur.title;
+  $('#pm').textContent = `${new Date(cur.createdAt).toLocaleDateString('ja-JP')} ・ ${mb(cur.size)}${cur.by ? ' ・ 投稿: ' + cur.by : ''}`;
+  $('#pAdmin').hidden = !cur.canEdit;
+  if (cur.hasThumb) pv.poster = `/thumb/${cur.id}`; else pv.removeAttribute('poster');
+  setSpeed(savedSpeed());
+  pv.src = `/video/${cur.id}`;
+  $('#player').showModal();
+  pv.play().catch(() => {});
+}
+$('#grid').onclick = (e) => { const c = e.target.closest('.card'); if (c) openPlayer(c.dataset.id); };
+$('#pclose').onclick = () => $('#player').close();
+$('#player').addEventListener('close', () => { pv.pause(); pv.removeAttribute('src'); pv.load(); });
+
+// ---------- 動画の編集（プレイヤー内） ----------
+$('#thumbPick').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f || !cur) return;
+  try { await putBlob(`/api/videos/${cur.id}/thumb`, await imageBlob(f)); load(); } catch (err) { alert(err.message); }
+};
+$('#pAdmin').onclick = async (e) => {
+  const act = e.target.dataset.act; if (!act || !cur) return;
+  try {
+    if (act === 'rename') {
+      const t = prompt('新しい名前', cur.title);
+      if (!t) return;
+      await api('/api/videos/' + cur.id, { method: 'PATCH', body: JSON.stringify({ title: t }) });
+      $('#pt').textContent = t.replace(/[\\/:*?"<>|]/g, '').trim() || cur.title;
+    } else if (act === 'thumb') { $('#thumbPick').click(); return; }
+    else if (act === 'frame') {
+      if (!pv.videoWidth) return alert('サムネにしたい場面で動画を止めてください');
+      await putBlob(`/api/videos/${cur.id}/thumb`, await toJpeg(pv, pv.videoWidth, pv.videoHeight));
+    } else if (confirm('この動画を削除しますか？')) {
+      await api('/api/videos/' + cur.id, { method: 'DELETE' });
+      $('#player').close();
+    }
+    load();
+  } catch (err) { alert(err.message); }
+};
+
+// ---------- 投稿 ----------
+$('#refresh').onclick = async () => { $('#upErr').textContent = ''; await load(true); };
+$('#uploadBtn').onclick = async () => {
+  const f = $('#file').files[0];
+  if (!f) { $('#upErr').textContent = '動画ファイルを選んでください'; return; }
+  const btn = $('#uploadBtn'), prog = $('#prog'), st = $('#upStatus');
+  $('#upErr').textContent = ''; btn.disabled = true; prog.hidden = false; prog.value = 0;
+  try {
+    st.textContent = 'サムネを準備中…';
+    const tf = $('#thumbFile').files[0];
+    const thumb = tf ? await imageBlob(tf).catch(() => null) : await autoThumb(f);
+    const { id, chunkSize } = await api('/api/uploads', { method: 'POST', body: JSON.stringify({ filename: f.name, size: f.size, title: $('#title').value }) });
+    if (thumb) await putBlob(`/api/uploads/${id}/thumb`, thumb).catch(() => {});
+    for (let off = 0; off < f.size; off += chunkSize) {
+      st.textContent = `送信中… ${Math.min(100, Math.round((off / f.size) * 100))}%`;
+      for (let t = 0; ; t++) {
+        try { await putBlob(`/api/uploads/${id}?offset=${off}`, f.slice(off, off + chunkSize)); break; }
+        catch (e) { if (t === 3) throw e; await sleep(1500 * (t + 1)); }
+      }
+      prog.value = (Math.min(off + chunkSize, f.size) / f.size) * 50;
+    }
+    await api(`/api/uploads/${id}/finish`, { method: 'POST' });
+    for (;;) {
+      await sleep(1500);
+      const s = await api(`/api/uploads/${id}`);
+      if (s.state === 'error') throw new Error(s.error || 'TeraBoxへの保存に失敗しました');
+      if (s.state === 'done') break;
+      if (s.phase === 'sending' && s.total) { prog.value = 50 + (s.done / s.total) * 50; st.textContent = `TeraBoxに保存中… ${s.done}/${s.total}`; }
+      else st.textContent = s.phase === 'finalizing' ? '仕上げ中…' : 'TeraBoxに保存する準備中…';
+    }
+    st.textContent = '完了しました'; $('#title').value = ''; $('#file').value = ''; $('#thumbFile').value = '';
+    load();
+  } catch (e) { $('#upErr').textContent = e.message; st.textContent = ''; }
+  btn.disabled = false; prog.hidden = true;
+};
+
+// ---------- アカウント管理（オーナー） ----------
+async function renderAccounts() {
+  try {
+    const list = await api('/api/accounts');
+    $('#accList').innerHTML = list.length ? list.map((a) => `
+      <div class="acc" data-id="${a.id}">
+        <span>${esc(a.username)} ${a.disabled ? '<span class="sub">（停止中）</span>' : ''}</span>
+        <span class="row"><button class="btn sm" data-a="pw">パスワード変更</button><button class="btn sm" data-a="toggle">${a.disabled ? '再開' : '停止'}</button><button class="btn sm danger" data-a="del">削除</button></span>
+      </div>`).join('') : '<p class="sub">まだ管理人アカウントはありません。</p>';
+  } catch (e) { $('#accErr').textContent = e.message; }
+}
+$('#addAcc').onclick = async () => {
+  try {
+    $('#accErr').textContent = '';
+    await api('/api/accounts', { method: 'POST', body: JSON.stringify({ username: $('#newUser').value.trim(), password: $('#newPw').value }) });
+    $('#newUser').value = ''; $('#newPw').value = ''; renderAccounts();
+  } catch (e) { $('#accErr').textContent = e.message; }
+};
+$('#accList').onclick = async (e) => {
+  const a = e.target.dataset.a; if (!a) return;
+  const id = e.target.closest('.acc').dataset.id;
+  try {
+    if (a === 'pw') { const p = prompt('新しいパスワード（8文字以上）'); if (!p) return; await api('/api/accounts/' + id, { method: 'PATCH', body: JSON.stringify({ password: p }) }); alert('変更しました'); }
+    else if (a === 'toggle') await api('/api/accounts/' + id, { method: 'PATCH', body: JSON.stringify({ disabled: e.target.textContent === '停止' }) });
+    else if (confirm('このアカウントを削除しますか？（投稿済みの動画は残ります）')) await api('/api/accounts/' + id, { method: 'DELETE' });
+    renderAccounts();
+  } catch (err) { $('#accErr').textContent = err.message; }
+};
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "video-share",
+  "version": "3.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node check.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "terabox-api": "2.9.5",
+    "crc-32": "^1.2.2"
+  }
+}
